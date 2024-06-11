@@ -1,0 +1,60 @@
+services:
+  app-discovery-service:
+    build: ./discovery-service
+    container_name: app-discovery-service
+    ports:
+      - '8761:8761'
+    expose:
+      - '8761'
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 40s
+  app-config-service:
+    build: ./config-service
+    container_name: app-config-service
+    ports:
+      - '9999:9999'
+    expose:
+      - '9999'
+    environment:
+      - DISCOVERY_SERVICE_URL=http://app-discovery-service:8761/eureka
+    depends_on:
+      app-discovery-service:
+        condition: service_healthy
+
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=hotel-db'
+      - 'POSTGRES_PASSWORD=1234'
+      - 'POSTGRES_USER=user1'
+    volumes:
+      - postgres:/data/postgres
+    ports:
+      - '5432'
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  pgadmin:
+    image: 'dpage/pgadmin4:latest'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: yassir.slit03@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: 1234
+      PGADMIN_LISTEN_PORT: 5050
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - '5050:5050'
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  postgres:
+  pgadmin:
+
